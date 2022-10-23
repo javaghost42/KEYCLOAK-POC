@@ -1,16 +1,19 @@
 package com.keycloak.poc.service;
 
 import com.keycloak.poc.exception.ValidationException;
+import com.keycloak.poc.request.CompositeRoleRequest;
 import com.keycloak.poc.request.RoleCreateRequest;
 import com.keycloak.poc.response.RoleDetails;
+import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.RoleResource;
+import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.NotFoundException;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +40,7 @@ public class RoleService {
         return keycloakInstanceBuilder.getInstanceWithRealm().roles().list().stream().map(role -> new RoleDetails(role.getName(), role.getDescription())).collect(Collectors.toList());
     }
 
-    public RoleDetails getRoleDetailsByRoleName(String roleName) {
+    public RoleDetails getRoleByRoleName(String roleName) {
         try {
             RoleRepresentation role = keycloakInstanceBuilder.getInstanceWithRealm().roles().get(roleName).toRepresentation();
             return new RoleDetails(role.getName(), role.getDescription());
@@ -61,7 +64,7 @@ public class RoleService {
     }
 
     public String deleteRoleByRoleName(String roleName) {
-        getRoleDetailsByRoleName(roleName);
+        getRoleByRoleName(roleName);
         try {
             keycloakInstanceBuilder.getInstanceWithRealm().roles().deleteRole(roleName);
         } catch (Exception e) {
@@ -88,6 +91,50 @@ public class RoleService {
         } catch (Exception e) {
             throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Unable to assign role to user ,please try again after some time");
         }
+    }
 
+    public String createCompositeRole(CompositeRoleRequest compositeRoleRequest) {
+        try {
+            List<RoleRepresentation> realmRolesList;
+            List<RoleRepresentation> clientRolesList = new ArrayList<>();
+            List<RoleRepresentation> compositeRolesList = new ArrayList<>();
+            RolesResource rolesResource = keycloakInstanceBuilder.getInstanceWithRealm().roles();
+            RealmResource realmResource = keycloakInstanceBuilder.getInstanceWithRealm();
+
+            RoleResource roleRepresentation = rolesResource.get(compositeRoleRequest.getRoleName());
+            realmRolesList = validateAndGetAllRealmRoles(compositeRoleRequest.getRealmRoles(), rolesResource);
+            roleRepresentation.deleteComposites(new ArrayList<>(roleRepresentation.getRealmRoleComposites()));
+
+            if (!compositeRoleRequest.getClientRoles().isEmpty()) compositeRoleRequest.getClientRoles().forEach((clientName, clientCompositeRoles) -> realmResource.clients().get(getClientId(clientName, realmResource)).roles().list().forEach(role -> clientCompositeRoles.stream().filter(ccr -> role.getName().equalsIgnoreCase(ccr)).map(ele -> clientRolesList.add(role)).toList()));
+
+            compositeRolesList.addAll(realmRolesList);
+            compositeRolesList.addAll(clientRolesList);
+            roleRepresentation.addComposites(compositeRolesList);
+        } catch (NotFoundException exception) {
+            throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Role Not Found.");
+        } catch (Exception e) {
+            throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Unable to create composite role ,please try again some time.");
+        }
+        return "Composite Role Created Successfully";
+    }
+
+    public String getClientId(String clientName, RealmResource realmResource) {
+        try {
+            return realmResource.clients().findAll().stream().filter(client -> client.getClientId().equalsIgnoreCase(clientName)).toList().get(0).getId();
+        } catch (ArrayIndexOutOfBoundsException exception) {
+            throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Invalid Client Name Provided : " + clientName);
+        }
+    }
+
+    public List<RoleRepresentation> validateAndGetAllRealmRoles(List<String> realmRoles, RolesResource rolesResource) {
+        List<RoleRepresentation> compositeRolesList = new ArrayList<>();
+        try {
+            if (!realmRoles.isEmpty()) {
+                realmRoles.forEach(role -> compositeRolesList.add(rolesResource.get(role).toRepresentation()));
+            }
+            return compositeRolesList;
+        } catch (NotFoundException e) {
+            throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Please Provide Valid Realm Role.");
+        }
     }
 }

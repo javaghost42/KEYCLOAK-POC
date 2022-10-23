@@ -1,5 +1,6 @@
 package com.keycloak.poc.controller;
 
+import com.keycloak.poc.request.CompositeRoleRequest;
 import com.keycloak.poc.request.RoleCreateRequest;
 import com.keycloak.poc.response.RoleDetails;
 import com.keycloak.poc.service.RoleService;
@@ -20,6 +21,11 @@ public class RoleController {
         return roleService.createRole(request);
     }
 
+    @PostMapping("/compositeRole")
+    public String createCompositeRole(@RequestBody CompositeRoleRequest compositeRoleRequest){
+       return roleService.createCompositeRole(compositeRoleRequest);
+    }
+
     @GetMapping
     public List<RoleDetails> getAllRoles() {
         return roleService.getAllRoles();
@@ -27,7 +33,12 @@ public class RoleController {
 
     @GetMapping("/{roleName}")
     public RoleDetails getRoleDetailsByRoleName(@PathVariable String roleName) {
-        return roleService.getRoleDetailsByRoleName(roleName);
+        return roleService.getRoleByRoleName(roleName);
+    }
+
+    @GetMapping("/user/{userName}")
+    public List<RoleDetails> getUserRoles(@PathVariable String userName) {
+        return roleService.getUserRoles(userName);
     }
 
     @PutMapping("/{roleName}")
@@ -40,8 +51,4 @@ public class RoleController {
         return roleService.deleteRoleByRoleName(roleName);
     }
 
-    @GetMapping("/user/{userName}")
-    public List<RoleDetails> getUserRoles(@PathVariable String userName) {
-        return roleService.getUserRoles(userName);
-    }
 }
