@@ -2,8 +2,8 @@ package com.keycloak.poc.controller;
 
 import com.keycloak.poc.request.UserCreateRequest;
 import com.keycloak.poc.request.UserUpdateRequest;
+import com.keycloak.poc.response.UserDetails;
 import com.keycloak.poc.service.UserService;
-import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,12 +22,12 @@ public class UserController {
     }
 
     @GetMapping
-    public List<UserRepresentation> getAllUsers() {
+    public List<UserDetails> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/{userName}")
-    public UserRepresentation getUserByUserName(@PathVariable String userName) {
+    public UserDetails getUserByUserName(@PathVariable String userName) {
         return userService.getUserByUserName(userName);
     }
 
@@ -39,10 +39,5 @@ public class UserController {
     @DeleteMapping("/{userName}")
     public String deleteUserByUserName(@PathVariable String userName) {
         return userService.deleteUserByUserName(userName);
-    }
-
-    @GetMapping("/token")
-    public String getToken() {
-        return userService.getToken();
     }
 }

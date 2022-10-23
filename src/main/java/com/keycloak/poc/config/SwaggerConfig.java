@@ -17,7 +17,7 @@ public class SwaggerConfig {
     @Bean
     public Docket api() {
         return new Docket(DocumentationType.SWAGGER_2)
-                .groupName("keycloak-poc")
+                .groupName("Keycloak")
                 .select()
                 .apis(RequestHandlerSelectors.basePackage("com.keycloak.poc.controller"))
                 .paths(PathSelectors.ant("/**"))
@@ -28,8 +28,8 @@ public class SwaggerConfig {
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder().title("keycloak-poc API Documentation")
-                .description("These are API's for keycloak-poc")
-                .license("keycloak-poc")
+                .description("These Are API's For Keycloak")
+                .license("Keycloak")
                 .version("1.0")
                 .build();
     }
