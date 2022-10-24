@@ -95,21 +95,15 @@ public class RoleService {
 
     public String createCompositeRole(CompositeRoleRequest compositeRoleRequest) {
         try {
-            List<RoleRepresentation> realmRolesList;
             List<RoleRepresentation> clientRolesList = new ArrayList<>();
             List<RoleRepresentation> compositeRolesList = new ArrayList<>();
-            RolesResource rolesResource = keycloakInstanceBuilder.getInstanceWithRealm().roles();
-            RealmResource realmResource = keycloakInstanceBuilder.getInstanceWithRealm();
 
-            RoleResource roleRepresentation = rolesResource.get(compositeRoleRequest.getRoleName());
-            realmRolesList = validateAndGetAllRealmRoles(compositeRoleRequest.getRealmRoles(), rolesResource);
-            roleRepresentation.deleteComposites(new ArrayList<>(roleRepresentation.getRealmRoleComposites()));
+            keycloakInstanceBuilder.getInstanceWithRealm().roles().get(compositeRoleRequest.getRoleName()).deleteComposites(new ArrayList<>(keycloakInstanceBuilder.getInstanceWithRealm().roles().get(compositeRoleRequest.getRoleName()).getRealmRoleComposites()));
+            if (!compositeRoleRequest.getClientRoles().isEmpty()) compositeRoleRequest.getClientRoles().forEach((clientName, clientCompositeRoles) -> keycloakInstanceBuilder.getInstanceWithRealm().clients().get(getClientId(clientName, keycloakInstanceBuilder.getInstanceWithRealm())).roles().list().forEach(role -> clientCompositeRoles.stream().filter(ccr -> role.getName().equalsIgnoreCase(ccr)).map(ele -> clientRolesList.add(role)).toList()));
 
-            if (!compositeRoleRequest.getClientRoles().isEmpty()) compositeRoleRequest.getClientRoles().forEach((clientName, clientCompositeRoles) -> realmResource.clients().get(getClientId(clientName, realmResource)).roles().list().forEach(role -> clientCompositeRoles.stream().filter(ccr -> role.getName().equalsIgnoreCase(ccr)).map(ele -> clientRolesList.add(role)).toList()));
-
-            compositeRolesList.addAll(realmRolesList);
+            compositeRolesList.addAll(validateAndGetAllRealmRoles(compositeRoleRequest.getRealmRoles(), keycloakInstanceBuilder.getInstanceWithRealm().roles()));
             compositeRolesList.addAll(clientRolesList);
-            roleRepresentation.addComposites(compositeRolesList);
+            keycloakInstanceBuilder.getInstanceWithRealm().roles().get(compositeRoleRequest.getRoleName()).addComposites(compositeRolesList);
         } catch (NotFoundException exception) {
             throw new ValidationException(HttpStatus.BAD_REQUEST.value(), "Role Not Found.");
         } catch (Exception e) {
